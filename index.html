@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retro Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at center, #111 0%, #000 100%);
+      color: #0ff;
+      font-family: 'Press Start 2P', cursive;
+      text-align: center;
+    }
+    header {
+      padding: 2rem;
+      font-size: 1.5rem;
+      text-shadow: 0 0 10px #0ff;
+    }
+    #gameContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      border: 4px solid #0ff;
+      margin-top: 20px;
+      image-rendering: pixelated;
+      background-color: black;
+    }
+    .buttons {
+      margin-top: 20px;
+    }
+    button {
+      font-family: 'Press Start 2P', cursive;
+      background: none;
+      color: #0ff;
+      border: 2px solid #0ff;
+      padding: 10px 20px;
+      cursor: pointer;
+      margin: 0 10px;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #0ff;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <header>RETRO ARCADE</header>
+  <div id="gameContainer">
+    <div class="buttons">
+      <button onclick="startSnake()">Play Snake</button>
+      <button onclick="startPong()">Play Pong</button>
+    </div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let gameInterval;
+
+    function clearGame() {
+      clearInterval(gameInterval);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Simple Snake game
+    function startSnake() {
+      clearGame();
+      let box = 20;
+      let snake = [{x: 9*box, y: 10*box}];
+      let direction;
+      let food = {
+        x: Math.floor(Math.random()*19+1)*box,
+        y: Math.floor(Math.random()*19+1)*box
+      };
+
+      document.onkeydown = e => {
+        if (e.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
+        if (e.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
+        if (e.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
+        if (e.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+      };
+
+      gameInterval = setInterval(() => {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0,0,400,400);
+        for(let i=0;i<snake.length;i++){
+          ctx.fillStyle = (i==0)? '#0ff':'#0aa';
+          ctx.fillRect(snake[i].x,snake[i].y,box,box);
+        }
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(food.x,food.y,box,box);
+
+        let headX = snake[0].x;
+        let headY = snake[0].y;
+        if (direction==='LEFT') headX -= box;
+        if (direction==='RIGHT') headX += box;
+        if (direction==='UP') headY -= box;
+        if (direction==='DOWN') headY += box;
+
+        if(headX===food.x && headY===food.y){
+          food = {
+            x: Math.floor(Math.random()*19+1)*box,
+            y: Math.floor(Math.random()*19+1)*box
+          };
+        } else {
+          snake.pop();
+        }
+
+        const newHead = {x: headX, y: headY};
+        if(headX<0 || headY<0 || headX>=400 || headY>=400 || collision(newHead,snake)){
+          clearGame();
+          ctx.fillStyle = '#f00';
+          ctx.fillText('GAME OVER', 80, 200);
+          return;
+        }
+        snake.unshift(newHead);
+      },100);
+
+      function collision(head, array){
+        return array.some(segment => head.x === segment.x && head.y === segment.y);
+      }
+    }
+
+    // Simple Pong game
+    function startPong(){
+      clearGame();
+      let paddleHeight = 60;
+      let paddleWidth = 10;
+      let playerY = (canvas.height - paddleHeight) / 2;
+      let aiY = playerY;
+      let ballX = canvas.width / 2;
+      let ballY = canvas.height / 2;
+      let ballRadius = 5;
+      let ballSpeedX = 4;
+      let ballSpeedY = 4;
+
+      document.onmousemove = e => {
+        let rect = canvas.getBoundingClientRect();
+        playerY = e.clientY - rect.top - paddleHeight / 2;
+      };
+
+      gameInterval = setInterval(() => {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        ctx.fillStyle = '#0ff';
+        ctx.fillRect(0, playerY, paddleWidth, paddleHeight);
+        ctx.fillRect(canvas.width - paddleWidth, aiY, paddleWidth, paddleHeight);
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
+        ctx.fill();
+
+        ballX += ballSpeedX;
+        ballY += ballSpeedY;
+        if(ballY < 0 || ballY > canvas.height) ballSpeedY = -ballSpeedY;
+
+        // AI movement
+        if(aiY + paddleHeight/2 < ballY) aiY += 3;
+        else aiY -= 3;
+
+        if(ballX < paddleWidth && ballY > playerY && ballY < playerY + paddleHeight) ballSpeedX = -ballSpeedX;
+        if(ballX > canvas.width - paddleWidth && ballY > aiY && ballY < aiY + paddleHeight) ballSpeedX = -ballSpeedX;
+
+        if(ballX < 0 || ballX > canvas.width){
+          clearGame();
+          ctx.fillStyle = '#f00';
+          ctx.fillText('GAME OVER', 80, 200);
+        }
+      }, 30);
+    }
+  </script>
+</body>
+</html>
